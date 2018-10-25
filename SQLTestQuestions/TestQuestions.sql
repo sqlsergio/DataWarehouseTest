@@ -4,7 +4,9 @@ USE PERSONDATABASE
 Hello! 
 
 Please use the test data provided in the file 'PersonDatabase' to answer the following
-questions. All answers should be written in SQL. 
+questions. Please also import the dbo.Contacts flat file to a table for use. 
+
+All answers should be written in SQL. 
 
 ***********************
 
@@ -159,6 +161,58 @@ efficient when queried?
 
 
 
+
+
+
+
+
+/**********************
+
+QUESTION 7
+
+Write a query to return risk data for all patients, all contracts 
+and a moving average of risk for that patient and contract in dbo.Risk. 
+
+**********************/
+
+
+
+
+
+
+
+/**********************
+
+QUESTION 8
+
+Write script to load the dbo.Dates table with all applicable data elements for dates 
+between 1/1/2010 and 50 days past the current date.
+
+
+**********************/
+
+
+
+
+
+
+
+
+/**********************
+
+QUESTION 9
+
+Please import the data from the flat file dbo.Contracts.txt to a table to complete this question. 
+
+Using the data in dbo.Contracts, create a query that returns 
+
+(PersonID, AttributionStartDate, AttributionEndDate) 
+
+merging contiguous date ranges into one row and returning a new row when a break in time exists. 
+The date at the beginning of the rage can be the first day of that month, the day of the end of the range can
+be the last day of that month. Use the dbo.Dates table if helpful.
+
+**********************/
 
 
 
