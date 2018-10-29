@@ -50,6 +50,20 @@ CREATE TABLE dbo.Risk
 
 GO
 
+CREATE TABLE dbo.Dates(
+	DateValue datetime NULL,
+	DateDayofMonth int NULL,
+	DateDayofYear int NULL,
+	DateQuarter int NULL,
+	DateWeekdayName varchar(20) NULL,
+	DateMonthName varchar(20) NULL,
+	DateYearMonth char(6) NULL
+) 
+GO
+
+
+
+
 --PERSON DATA
 
 INSERT INTO DBO.PERSON (PersonID, PersonName, Sex, DateofBirth, Address, IsActive)
