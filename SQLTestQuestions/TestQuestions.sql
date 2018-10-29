@@ -128,8 +128,9 @@ Rewrite the query with any required changes in Answer B section below.
 
 QUESTION 5
 
-Create a function that accepts a first and last name and returns a PersonID from the Person table. If no 
-match is found, the function should return -1.
+Create a stored procedure that accepts (first name, last name, dob and sex) as parameters and 
+and returns a PersonID and a match score from the Person table based on the parameters given. If the paramenters dont 
+match exactly account for partial matches. 
 
 
 **********************/
@@ -166,6 +167,9 @@ efficient when queried?
 
 
 
+
+
+
 /**********************
 
 QUESTION 7
@@ -174,6 +178,10 @@ Write a query to return risk data for all patients, all contracts
 and a moving average of risk for that patient and contract in dbo.Risk. 
 
 **********************/
+
+
+
+
 
 
 
@@ -198,6 +206,11 @@ between 1/1/2010 and 50 days past the current date.
 
 
 
+
+
+
+
+
 /**********************
 
 QUESTION 9
@@ -213,6 +226,7 @@ The date at the beginning of the rage can be the first day of that month, the da
 be the last day of that month. Use the dbo.Dates table if helpful.
 
 **********************/
+
 
 
 
