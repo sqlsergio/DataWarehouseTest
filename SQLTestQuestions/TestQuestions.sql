@@ -128,9 +128,26 @@ Rewrite the query with any required changes in Answer B section below.
 
 QUESTION 5
 
-Create a stored procedure that accepts (first name, last name, dob and sex) as parameters and 
-and returns a PersonID and a match score from the Person table based on the parameters given. If the paramenters dont 
-match exactly account for partial matches. 
+Create a patient matching stored procedure that accepts (first name, last name, dob and sex) as parameters and 
+and calculates a match score from the Person table based on the parameters given. If the parameters do not match the existing 
+data exactly, create a partial match check using the weights below to assign partial credit for each. Return PatientIDs and the
+ calculated match score. Feel free to modify or create any objects necessary in PersonDatabase.  
+
+FirstName 
+	Full Credit = 1
+	Partial Credit = .5
+
+LastName 
+	Full Credit = .8
+	Partial Credit = .4
+
+Dob 
+	Full Credit = .75
+	Partial Credit = .3
+
+Sex 
+	Full Credit = .6
+	Partial Credit = .25
 
 
 **********************/

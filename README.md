@@ -17,7 +17,7 @@ Import the dbo.Contracts.txt flat file data to a table into the PersonDatabase t
 
 ### Submitting Answers
 
-Submit your answers in a branch in the TestQuestions.sql script and create a pull request for review.
+Please fork this repository and submit your answers for review via a pull request.
 
 
 
