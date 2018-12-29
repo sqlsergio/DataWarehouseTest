@@ -1,4 +1,5 @@
 USE PERSONDATABASE
+GO
 
 /*********************
 Hello! 
@@ -24,11 +25,15 @@ Any patients that dont have a risk level should also be included in the results.
 -- OPTION 1, USING RANK()/DENSE_RANK()
 SELECT
 	PersonName,
-	ISNULL(AttributedPayer,'No Payer Info') AS AttributedPayer, -- Took the liberty to add default values for missing AttributedPayer...
-	ISNULL(CAST(RiskLevel AS varchar(20)),'Undetermined') AS RiskLevel -- ...and RiskLevel
+	-- Took the liberty to add default values for missing AttributedPayer...
+	ISNULL(AttributedPayer,'No Payer Info') AS AttributedPayer, 
+	-- ... and RiskLevel
+	ISNULL(CAST(RiskLevel AS varchar(20)),'Undetermined') AS RiskLevel 
 FROM (
-	SELECT P.PersonName, AttributedPayer, RiskLevel, DENSE_RANK() OVER (PARTITION BY P.PersonName ORDER BY RiskDateTime DESC) AS RankLevel
-	-- SELECT P.PersonName, AttributedPayer, RiskLevel, RANK() OVER (PARTITION BY P.PersonName ORDER BY RiskDateTime DESC) AS RankLevel
+	SELECT P.PersonName, AttributedPayer, RiskLevel, DENSE_RANK() 
+		OVER (PARTITION BY P.PersonName ORDER BY RiskDateTime DESC) AS RankLevel
+	/* SELECT P.PersonName, AttributedPayer, RiskLevel, RANK() 
+		OVER (PARTITION BY P.PersonName ORDER BY RiskDateTime DESC) AS RankLevel*/
 	FROM Person AS P
 	LEFT JOIN Risk AS R
 		ON P.PersonID = R.PersonID
@@ -77,13 +82,15 @@ SELECT
 	LTRIM(RTRIM(
 		CASE
 			WHEN CHARINDEX('(',PersonName) = 0 THEN PersonName 
-			ELSE REPLACE(REPLACE(PersonName, SUBSTRING(PersonName, CHARINDEX('(',PersonName), LEN(PersonName) - CHARINDEX(')',REVERSE(PersonName)) + 1 - CHARINDEX('(',PersonName) + 1), ''), '  ',' ') 
+			ELSE REPLACE(REPLACE(PersonName, SUBSTRING(PersonName, CHARINDEX('(',PersonName), 
+				LEN(PersonName) - CHARINDEX(')',REVERSE(PersonName)) + 1 - CHARINDEX('(',PersonName) + 1), ''), '  ',' ') 
 		END
 	)) AS PersonName, 
 	LTRIM(RTRIM(
 		CASE
 			WHEN CHARINDEX('(',PersonName) = 0 THEN ''
-			ELSE REPLACE(REPLACE(SUBSTRING(PersonName, CHARINDEX('(',PersonName), LEN(PersonName) - CHARINDEX(')',REVERSE(PersonName)) + 1 - CHARINDEX('(',PersonName) + 1),'(',''),')','') 
+			ELSE REPLACE(REPLACE(SUBSTRING(PersonName, CHARINDEX('(',PersonName), 
+				LEN(PersonName) - CHARINDEX(')',REVERSE(PersonName)) + 1 - CHARINDEX('(',PersonName) + 1),'(',''),')','') 
 		END
 	)) AS Nickname
 FROM Person AS P;
@@ -106,11 +113,23 @@ multiple levels Gold > Silver > Bronze
 -- OPTION 1 USING MULTIPLE SELF JOIN & NESTED SUB-QUERIES
 SELECT 
 	PersonName,
-	CASE WHEN RiskLevelIndex = 1  THEN 'Gold' WHEN RiskLevelIndex = 2  THEN 'Silver' WHEN RiskLevelIndex = 3  THEN 'Bronze' ELSE 'Undetermined' END AS RiskLevelIndex
+	CASE RiskLevelIndex
+		WHEN 1 THEN 'Gold'
+		WHEN 2 THEN 'Silver'
+		WHEN 3 THEN 'Bronze'
+		ELSE 'Undetermined'
+	END AS RiskLevelIndex
 FROM (
 	SELECT
 		PersonName,
-		MIN(CASE WHEN RiskLevel = 'Gold' THEN 1 WHEN RiskLevel = 'Silver' THEN 2 WHEN RiskLevel = 'Bronze' THEN 3 ELSE 4 END) AS RiskLevelIndex
+		MIN(
+			CASE RiskLevel 
+				WHEN 'Gold' THEN 1
+				WHEN 'Silver' THEN 2
+				WHEN 'Bronze' THEN 3
+				ELSE 4
+			END
+			) AS RiskLevelIndex
 	FROM Person AS P
 	LEFT JOIN (
 		Risk AS R1
@@ -127,11 +146,18 @@ FROM (
 	) AS SZ
 ORDER BY 1;
 
--- OPTION 2, USING A CTE
+-- OPTION 2, USING A CTE FOR THE SUBQUERIES
 WITH IndexedRiskLevel(PersonName,RiskLevelIndex) AS (
 	SELECT
 		PersonName,
-		MIN(CASE WHEN RiskLevel = 'Gold' THEN 1 WHEN RiskLevel = 'Silver' THEN 2 WHEN RiskLevel = 'Bronze' THEN 3 ELSE 4 END) AS RiskLevelIndex
+		MIN(
+			CASE RiskLevel 
+				WHEN 'Gold' THEN 1
+				WHEN 'Silver' THEN 2
+				WHEN 'Bronze' THEN 3
+				ELSE 4
+			END
+			) AS RiskLevelIndex
 	FROM Person AS P
 	LEFT JOIN (
 		Risk AS R1
@@ -148,7 +174,12 @@ WITH IndexedRiskLevel(PersonName,RiskLevelIndex) AS (
 	)
 SELECT 
 	PersonName,
-	CASE WHEN RiskLevelIndex = 1  THEN 'Gold' WHEN RiskLevelIndex = 2  THEN 'Silver' WHEN RiskLevelIndex = 3  THEN 'Bronze' ELSE 'Undetermined' END AS RiskLevelIndex
+	CASE RiskLevelIndex
+		WHEN 1 THEN 'Gold'
+		WHEN 2 THEN 'Silver'
+		WHEN 3 THEN 'Bronze'
+		ELSE 'Undetermined'
+	END AS RiskLevelIndex
 FROM IndexedRiskLevel
 ORDER BY 1;
 /************************************ END ANSWER 3 ************************************/
@@ -191,8 +222,9 @@ Rewrite the query with any required changes in Answer B section below.
 /*********************************** START ANSWER 4 ***********************************/
 /*********************
 NOTE: 
-	No changes made to the above query improved the execution plan on my machine due to the small amount of data. 
-	Below, I provide two options that, in combination with proper indexing, should render better performance for larger Data Sets.
+	No changes made to the above query improved the execution plan on my machine 
+	due to the small amount of data. Below, I provide two options that, in combination 
+	with proper indexing, should render better performance for larger Data Sets.
 *********************/
 -- OPTION 1, USING "EXISTS" INSTEAD OF "IN"
 SELECT *
@@ -298,10 +330,28 @@ CREATE PROCEDURE dbo.usp_Fuzzy_Person_Matching(
 AS
 BEGIN
 	SELECT PersonID, 
-		CASE WHEN FirstName = @FirstName THEN 1 WHEN FirstName LIKE '%' + @FirstName + '%' THEN .5 ELSE 0 END +
-		CASE WHEN LastName = @LastName THEN .8 WHEN LastName LIKE '%' + @LastName + '%' THEN .4 ELSE 0 END +
-		CASE WHEN CAST(DateofBirth AS date) = CAST(@DOB AS date) THEN .75 WHEN YEAR(DateofBirth) = YEAR(@DOB) OR MONTH(DateofBirth) = MONTH(@DOB) OR DAY(DateofBirth) = DAY(@DOB) THEN .3 ELSE 0 END +
-		CASE WHEN Sex = @Sex THEN .6 WHEN Sex LIKE '%' + @Sex + '%' THEN .25 ELSE 0 END AS MatchScore
+		CASE 
+			WHEN FirstName = @FirstName THEN 1.0 
+			WHEN FirstName LIKE '%' + @FirstName + '%' THEN .5 
+			ELSE 0
+		END
+		+ CASE 
+			WHEN LastName = @LastName THEN 0.8 
+			WHEN LastName LIKE '%' + @LastName + '%' THEN .4 
+			ELSE 0 
+		END
+		+ CASE 
+			WHEN CAST(DateofBirth AS date) = CAST(@DOB AS date) THEN 0.75 
+			WHEN YEAR(DateofBirth) = YEAR(@DOB) 
+				OR MONTH(DateofBirth) = MONTH(@DOB) 
+				OR DAY(DateofBirth) = DAY(@DOB) THEN 0.3
+			ELSE 0
+		END
+		+ CASE 
+			WHEN Sex = @Sex THEN 0.6 
+			WHEN Sex LIKE '%' + @Sex + '%' THEN 0.25
+			ELSE 0
+		END AS MatchScore
 	FROM dbo.Person;
 END;
 GO
@@ -326,7 +376,8 @@ efficient when queried?
 -- A.
 CREATE TABLE dbo.Person
 (
-	PersonID INT PRIMARY KEY -- Add PK on PersonID (Maybe IDENTITY(1,1) as well)
+	-- Add PK on PersonID (Maybe IDENTITY(1,1) as well)
+	PersonID INT PRIMARY KEY 
 	, PersonName VARCHAR(255)
 	, Sex VARCHAR(10) 
 	, DateofBirth DATETIME
@@ -337,12 +388,14 @@ GO
 
 CREATE TABLE dbo.Risk
 (
-	PersonID INT -- Change varchar(10) to INT to match Data Type of referenced table.
+	-- Change varchar(10) to INT to match Data Type of referenced table.
+	PersonID INT 
 	, AttributedPayer VARCHAR(255)
 	, RiskScore DECIMAL(10,6)
 	, RiskLevel VARCHAR(10)
 	, RiskDateTime DATETIME
-	, FOREIGN KEY (PersonID) REFERENCES dbo.Person(PersonID) -- And add FK to dbo.Person.PersonID (assuming PK was added)
+	 -- And add FK to dbo.Person.PersonID (assuming PK was added)
+	, FOREIGN KEY (PersonID) REFERENCES dbo.Person(PersonID)
 )
 GO
 
@@ -356,13 +409,15 @@ CREATE TABLE dbo.Person
 	, DateofBirth DATETIME
 	, Address VARCHAR(255)
 	, IsActive INT
-	, CONSTRAINT CC_SEX CHECK (Sex IN ('Female', 'Male')) -- Add Check constraint that restricts Sex values to 'Female' or 'Male'.
+	-- Add Check constraint that restricts Sex values to 'Female' or 'Male'.
+	, CONSTRAINT CC_SEX CHECK (Sex IN ('Female', 'Male')) 
 );
 GO
 
 
 -- C.
--- In ADDITION TO THE ABOVE CHANGES I would add some indexes like the ones below, but the decision to do so will depend on workload and query performance.
+-- In ADDITION TO THE ABOVE CHANGES I would add some indexes like the ones below, 
+-- but the decision to do so will depend on workload and query performance.
 -- Add indexes to the dbo.Risk table
 CREATE INDEX IX_Risk_RiskDateTime ON dbo.Risk(RiskDateTime)
 GO
@@ -373,7 +428,8 @@ GO
 CREATE INDEX IX_Person_PersonName ON dbo.Person(PersonName)
 GO
 
--- I would also make some design changes, like moving the Address field to it's own table and breaking each part of the date into it's own field.
+-- I would also make some design changes, like moving the Address field to it's own 
+-- table and breaking each part of the date into it's own field.
 -- The new dbo.Person and dbo.PersonAddress tables would look somehting like this:
 CREATE TABLE dbo.Person
 (
@@ -399,14 +455,15 @@ CREATE TABLE dbo.PersonAddress (
 GO
 
 -- Finally, PARITIONING:
--- We can partition the dbo.Person & dbo.Risk tables by range on a new computed column based on PersonID, 
--- so joins between the dbo.Person and the dbo.Risk tables will happen on the same partition.
--- The example below shows the creation of a new dbo.PersonPartition table with only 4 partitions.
--- For production, an analysis should be done to determine the more appropriate number of partitions.
--- This is not the only way to partition the table. We could instead use the PersonID value itself.
--- The problem wiht this is that you will need to add new partitions as the data grows. 
--- Also, depending on how the data grows and becomes stale, the more recent partitions will be the most active ones, 
--- which will cause hotspots as most of the queries will be accessing it, taking away the advantages of partitioning.
+/*	We can partition the dbo.Person & dbo.Risk tables by range on a new computed column based 
+	on PersonID,  so joins between the dbo.Person and the dbo.Risk tables will happen on the 
+	same partition. The example below shows the creation of a new dbo.PersonPartition table 
+	with only 4 partitions. For production, an analysis should be done to determine the more 
+	appropriate number of partitions. This is not the only way to partition the table. 
+	We could instead use the PersonID value itself. The problem wiht this is that one will need 
+	to add new partitions as the data grows. Also, depending on how the data grows and becomes stale,
+	the more recent partitions will be the most active ones, which will cause hotspots as most 
+	of the queries will be accessing it, taking away the advantages of partitioning.*/
 USE PersonDatabase
 GO
 ALTER DATABASE PersonDatabase ADD FILEGROUP Part0FG;
@@ -418,7 +475,7 @@ GO
 ALTER DATABASE PersonDatabase ADD FILEGROUP Part3FG;
 GO
 -- For simplicity, all data files in this example will be created on a single drive. 
--- Ideally, The data files should be created on separate volumes to avoid disk contention and reduce I/O waits
+-- Ideally, The data files should be created on separate volumes to avoid disk contention
 ALTER DATABASE PersonDatabase ADD FILE (  
 	NAME = Partition0data0,
 	FILENAME = 'D:\Program Files\Microsoft SQL Server\MSSQL13.MSSQLSERVER2016\MSSQL\DATA\F0dat0.ndf',
@@ -487,7 +544,7 @@ GO
 -- Check the data just added to the new table
 SELECT *
 FROM dbo.PersonPartition;
--- Check the data just added to the new table
+-- Check the number of rows in each partition to verify partion function and scheme are correct
 SELECT partition_id, object_id, index_id, partition_number, row_count
 FROM sys.dm_db_partition_stats
 WHERE object_id = OBJECT_ID('dbo.PersonPartition')
@@ -507,12 +564,14 @@ and a moving average of risk for that patient and contract in dbo.Risk.
 
 /*********************************** START ANSWER 7 ***********************************/
 SELECT P.PersonName, R.AttributedPayer, R.RiskDateTime, R.RiskScore,
-	AVG(R.RiskScore) OVER(PARTITION BY P.PersonName, R.AttributedPayer ORDER BY R.RiskDateTime ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS MovingAverage
+	AVG(R.RiskScore) OVER(PARTITION BY P.PersonName, R.AttributedPayer 
+		ORDER BY R.RiskDateTime ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS MovingAverage
 FROM Person AS P
 LEFT JOIN Risk AS R
 	ON P.PersonID = R.PersonID
 GROUP BY P.PersonName, R.AttributedPayer, R.RiskDateTime, R.RiskScore
 ORDER BY P.PersonName, R.AttributedPayer, R.RiskDateTime;
+/************************************ END ANSWER 7 ************************************/
 
 
 
@@ -525,6 +584,7 @@ between 1/1/2010 and 50 days past the current date.
 
 
 **********************/
+
 /*********************************** START ANSWER 8 ***********************************/
 SET NOCOUNT ON;
 GO
@@ -583,8 +643,11 @@ be the last day of that month. Use the dbo.Dates table if helpful.
 **********************/
 
 /*********************************** START ANSWER 9 ***********************************/
-/*	ASSUMPTION: For the two answers below, variable @DaysIntoTheFuture from answer script to QUESTION 8, was set to 730.	*/
--- INTERPRETATION 1: A record is going to be return for every period of uninterrupted attribution, covering multiple months if aplicable
+/*	ASSUMPTION: For the two answers below, variable 
+	@DaysIntoTheFuture from answer script to QUESTION 8, was set to 730. */
+
+-- INTERPRETATION 1: A record is going to be return for every period of uninterrupted attribution, 
+-- covering multiple months if aplicable.
 WITH ContractsRanges (PersonID, DateValue) AS (
 	SELECT
 		C1.PersonID,
@@ -602,11 +665,17 @@ FROM (
 	SELECT 
 		CR1.PersonID,
 		MAX(CASE WHEN CR2.DateValue IS NULL THEN CR1.DateValue END) 
-			OVER(PARTITION BY CR1.PersonID ORDER BY CR1.DateValue ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS AttributionStartDate, 
-		/*	For this to work table dbo.Dates has to go beyond the MAX ContractEndDate in the dbo.Contracts.txt file, 
-			otherwise the dates will stop 50 days into the future	*/
+		OVER(
+			PARTITION BY CR1.PersonID ORDER BY CR1.DateValue 
+			ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+			) AS AttributionStartDate, 
+		/*	For this to work table dbo.Dates has to go beyond the MAX ContractEndDate 
+			in the dbo.Contracts.txt file,  otherwise the dates will stop 50 days into the future	*/
 		MAX(CASE WHEN CR3.DateValue IS NULL THEN CR1.DateValue END) 
-			OVER(PARTITION BY CR1.PersonID ORDER BY CR1.DateValue ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS AttributionEndDate
+		OVER(
+			PARTITION BY CR1.PersonID ORDER BY CR1.DateValue 
+			ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+			) AS AttributionEndDate
 	FROM ContractsRanges AS CR1
 	LEFT JOIN ContractsRanges AS CR2
 		ON CR1.PersonID = CR2.PersonID
@@ -619,8 +688,9 @@ GROUP BY PersonID, AttributionStartDate
 ORDER BY 1,2;
 
 
--- Interpretation 2: A record is going to be return for every period of uninterrupted attribution, from the start of attribution to the end of the month, 
--- then one record will be returned for each following whole month until a break in attribution is found, or the last day of attribution is encountered.
+-- INTERPRETATION 2: A record is going to be return for every period of uninterrupted attribution, 
+-- from the start of attribution date to the end of the month, then one record for each of the following 
+-- whole months until a break in attribution is found, or the last day of attribution is encountered.
 WITH ContractsRanges (PersonID, DateValue) AS (
 	SELECT
 		C1.PersonID,
@@ -638,11 +708,17 @@ FROM (
 	SELECT 
 		CR1.PersonID,
 		MAX(CASE WHEN CR2.DateValue IS NULL OR DAY(CR1.DateValue) = 1 THEN CR1.DateValue END) 
-			OVER(PARTITION BY CR1.PersonID ORDER BY CR1.DateValue ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS AttributionStartDate, 
+		OVER(
+			PARTITION BY CR1.PersonID ORDER BY CR1.DateValue 
+			ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+			) AS AttributionStartDate, 
 		/*	For this to work table dbo.Dates has to go beyond the MAX ContractEndDate in the dbo.Contracts.txt file, 
 			otherwise the dates will stop 50 days into the future	*/
 		MAX(CASE WHEN CR3.DateValue IS NULL OR DAY(CR3.DateValue) = 1 THEN CR1.DateValue END) 
-			OVER(PARTITION BY CR1.PersonID ORDER BY CR1.DateValue ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS AttributionEndDate
+		OVER(
+			PARTITION BY CR1.PersonID ORDER BY CR1.DateValue 
+			ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+			) AS AttributionEndDate
 	FROM ContractsRanges AS CR1
 	LEFT JOIN ContractsRanges AS CR2
 		ON CR1.PersonID = CR2.PersonID
